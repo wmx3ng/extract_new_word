@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import csv
 import os
+import re
 
 from remove_html_tag import filter_tags
 
@@ -48,6 +49,7 @@ class CSV2Item(object):
                     for row in spam_reader:
                         pure = self._filter_by_len(filter_tags(row[3]))
                         if pure:
+                            pure = re.sub(r'[^\x00-\x7F]+', ' ', pure)
                             csv_write.writerow([pure])
         # sort and unique.
         cmd = 'sort ' + output_path + ' | uniq > ' + output_path_with_sort + ' ; rm ' + output_path

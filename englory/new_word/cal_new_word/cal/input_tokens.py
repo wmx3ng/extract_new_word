@@ -81,7 +81,7 @@ class InputTokens(object):
         with open(input_path, 'r') as text_read, open(stop_word_path, "r")as stop_word_read:
             lines = text_read.readlines()
             stop_words = set(w.strip() for w in stop_word_read.readlines())
-
+            stop_words = stop_words.union(nltk.corpus.stopwords.words('english'))
             line_no = 0
             correct_count = 0
             error_count = 0
@@ -101,6 +101,7 @@ class InputTokens(object):
                     print line_no, correct_count, error_count
                     self.pipeline.execute()
 
+        print line_no, correct_count, error_count
         self.pipeline.execute()
 
         cmd = 'rm ' + input_path
