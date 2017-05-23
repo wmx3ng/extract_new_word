@@ -6,8 +6,8 @@ from remove_html_tag import filter_tags
 
 
 class CSV2Item(object):
-    def __init__(self, data_dir, output_dir):
-        self.data_dir = data_dir
+    def __init__(self, data_dirs, output_dir):
+        self.data_dirs = data_dirs
         self.output_dir = output_dir
 
     def _filter_by_len(self, text):
@@ -27,8 +27,9 @@ class CSV2Item(object):
 
     def _get_file_list(self):
         files = []
-        for (dirpath, dirnames, filenames) in os.walk(self.data_dir):
-            files.extend([os.path.join(dirpath, file_name) for file_name in filenames])
+        for data_dir in self.data_dirs:
+            for (dirpath, dirnames, filenames) in os.walk(data_dir):
+                files.extend([os.path.join(dirpath, file_name) for file_name in filenames])
 
         return files
 
@@ -54,5 +55,7 @@ class CSV2Item(object):
 
 
 if __name__ == '__main__':
-    csv_2_item = CSV2Item("/home/wong/data/news_list/20170522", "/home/wong/data/output")
+    data_dirs = ["/home/wong/data/news_list/20170522", "/home/wong/data/news_list/20170521"]
+    # data_dirs = ["/home/wong/data/news_list/20170521"]
+    csv_2_item = CSV2Item(data_dirs, "/home/wong/data/output")
     csv_2_item.convert()

@@ -13,6 +13,7 @@ from englory.new_word.cal_new_word.redis_conn.PrefixKeys import *
 from englory.new_word.cal_new_word.redis_conn.RedisConn import RedisConn
 
 time_format = "%Y-%m-%d_%H_%M_%S"
+time_format_mysql = "%Y-%m-%d %H:%M:%S"
 
 print_format = "alpha_case: %s : %d -> %s : %d"
 contain_format = "relation_contain: %s : %d -> %s : %d"
@@ -116,17 +117,46 @@ class GenerateNewWords(object):
         if not self.merge_words:
             self._merge()
 
-        batch_inner_clause = 'INSERT INTO ' + self.db_table + ' (Keywords,Freq,Ratio,IsPhrase) VALUES (%s, %s, %s,%s)'
+        batch_insert_clause = 'INSERT INTO ' + self.db_table + ' (Keywords,Freq,Ratio,IsPhrase,added,updated) VALUES (%s, %s, %s,%s,%s,%s)'
+        batch_update_clause = 'update ' + self.db_table + ' set Freq=%s,Ratio=%s,updated=%s where KeyWords=%s'
+        query_model = 'select KeyWords,Freq,Status from ' + self.db_table + ' where KeyWords=\'%s\' order by added desc limit 1'
         try:
             # 通过获取到的数据库连接conn下的cursor()方法来创建游标。
             cur = self.db_conn.cursor()
-            # copy merge_words
-            result_list = [w for w in self.merge_words]
-            while result_list:
-                partial_list = result_list[:write_db_winow]
-                batch_write = [(r, int(self.dict_by_freq[r]), float(self.dict_by_ratio[r]), 1) for r in partial_list]
-                print 'insert count:', cur.executemany(batch_inner_clause, batch_write)
-                result_list = result_list[write_db_winow:]
+
+            added = datetime.datetime.now().strftime(time_format_mysql)
+            updated = added
+
+            batch_insert_list = []
+            batch_update_list = []
+
+            for w in self.merge_words:
+                current_freq = int(self.dict_by_freq[w])
+                current_ratio = float(self.dict_by_ratio[w])
+                query_clause = query_model % w
+                cur.execute(query_clause)
+                res = cur.fetchone()
+                if res:
+                    remote_word, remote_freq, remote_status = res
+                    if current_freq <= remote_freq:
+                        continue
+                    batch_update_list.append((current_freq, current_ratio, updated, w))
+                else:
+                    batch_insert_list.append((w, current_freq, current_ratio, 1, added, updated))
+
+            print len(self.merge_words), len(batch_update_list), len(batch_insert_list)
+
+            while batch_insert_list:
+                partial_list = batch_insert_list[:write_db_winow]
+                print 'insert count:', cur.executemany(batch_insert_clause, partial_list)
+                batch_insert_list = batch_insert_list[write_db_winow:]
+
+                self.db_conn.commit()
+
+            while batch_update_list:
+                partial_list = batch_update_list[:write_db_winow]
+                print 'update count:', cur.executemany(batch_update_clause, partial_list)
+                batch_update_list = batch_update_list[write_db_winow:]
 
                 self.db_conn.commit()
         except Exception as e:

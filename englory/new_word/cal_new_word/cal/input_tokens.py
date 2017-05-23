@@ -33,10 +33,11 @@ class InputTokens(object):
         # add stat info
         self.pipeline.sadd(set_single_word, last_word)
         self.pipeline.hincrby(single_word, last_word, 1)
-        if right is not None:
-            # add adjoin word
-            self.pipeline.hincrby(adjoin_left_single_word + right, last_word, 1)
-            self.pipeline.hincrby(adjoin_right_single_word + last_word, right, 1)
+        # TODO 熵计算部分目前不考虑
+        # if right is not None:
+        # add adjoin word
+        # self.pipeline.hincrby(adjoin_left_single_word + right, last_word, 1)
+        # self.pipeline.hincrby(adjoin_right_single_word + last_word, right, 1)
         # add new word
         real_size = new_word_max_size
         if real_size > len(token_list):

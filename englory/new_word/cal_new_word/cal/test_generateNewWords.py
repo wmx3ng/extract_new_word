@@ -12,5 +12,5 @@ class TestGenerateNewWords(TestCase):
         generate_new_word = GenerateNewWords('localhost', 11112, 1)
         generate_new_word.set_db_info('mysql-server', 3306, 'root', '', 'recommendation', 'thesaurus')
         generate_new_word.save_2_db()
-        generate_new_word.set_output_dir('/home/wong/data/output')
-        generate_new_word.save_2_csv()
+        # generate_new_word.set_output_dir('/home/wong/data/output')
+        # generate_new_word.save_2_csv()
