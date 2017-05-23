@@ -1,0 +1,16 @@
+#redis config
+redis:
+  host: localhost
+  port: 11112
+  db:   1
+#db config
+db:
+  host: mysql-server
+  port: 3306
+  user: root
+  passwd:
+  db: recommendataion
+  table:  thesaurus
+# dir config
+data_dir: /home/wong/data/news_list
+output_dir: /home/wong/data/output
