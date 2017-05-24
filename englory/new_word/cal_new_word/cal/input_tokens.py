@@ -18,11 +18,11 @@ strip_str = """-“”"""
 
 class InputTokens(object):
     def __init__(self, input_dir, redis_host, redis_port, redis_db):
-        self.input_dir = input_dir
+        self._input_dir = input_dir
         # redis englory_redis_conn, pipeline
-        self.redis_conn = RedisConn.redis_conn(redis_host, redis_port, redis_db)
-        self.redis_conn.flushdb()
-        self.pipeline = self.redis_conn.pipeline()
+        self._redis_conn = RedisConn.redis_conn(redis_host, redis_port, redis_db)
+        self._redis_conn.flushdb()
+        self._pipeline = self._redis_conn.pipeline()
 
     # stat token info.
     def _extract_word_from_list(self, token_list, right):
@@ -31,8 +31,8 @@ class InputTokens(object):
 
         last_word = token_list[-1]
         # add stat info
-        self.pipeline.sadd(set_single_word, last_word)
-        self.pipeline.hincrby(single_word, last_word, 1)
+        self._pipeline.sadd(set_single_word, last_word)
+        self._pipeline.hincrby(single_word, last_word, 1)
         # TODO 熵计算部分目前不考虑
         # if right is not None:
         # add adjoin word
@@ -44,8 +44,8 @@ class InputTokens(object):
             real_size = len(token_list)
         while real_size > 1:
             word = ' '.join(token_list[- real_size:])
-            self.pipeline.hincrby(new_word, word, 1)
-            self.pipeline.zincrby(new_word_with_order, word, 1)
+            self._pipeline.hincrby(new_word, word, 1)
+            self._pipeline.zincrby(new_word_with_order, word, 1)
             real_size -= 1
 
         self._extract_word_from_list(token_list[:-1], token_list[-1])
@@ -66,17 +66,20 @@ class InputTokens(object):
         for token in tokens:
             if token == '' or self._is_punc(token) or token in stop_words:
                 self._extract_word_from_list(token_list, None)
-                self.pipeline.hincrby(summary_meta, summary_meta_word_size, len(token_list))
+                self._pipeline.hincrby(summary_meta, summary_meta_word_size, len(token_list))
                 token_list = []
             else:
                 token_list.append(token)
         # handle tail.
         if len(token_list) > 0:
             self._extract_word_from_list(token_list, None)
-            self.pipeline.hincrby(summary_meta, summary_meta_word_size, len(token_list))
+            self._pipeline.hincrby(summary_meta, summary_meta_word_size, len(token_list))
+
+    def _print_status_info(self, line_no, correct_count, error_count):
+        print 'all:', line_no, 'correct count:', correct_count, 'error count:', error_count
 
     def resolve_text(self):
-        input_path = os.path.join(self.input_dir, 'news')
+        input_path = os.path.join(self._input_dir, 'news')
         stop_word_path = os.path.join(os.path.dirname(Config.__file__), 'stopWords')
         with open(input_path, 'r') as text_read, open(stop_word_path, "r")as stop_word_read:
             lines = text_read.readlines()
@@ -98,11 +101,11 @@ class InputTokens(object):
                     pass
 
                 if correct_count % 100 == 0:
-                    print line_no, correct_count, error_count
-                    self.pipeline.execute()
+                    self._print_status_info(line_no, correct_count, error_count)
+                    self._pipeline.execute()
 
-        print line_no, correct_count, error_count
-        self.pipeline.execute()
+        self._print_status_info(line_no, correct_count, error_count)
+        self._pipeline.execute()
 
         cmd = 'rm ' + input_path
         os.system(cmd)
@@ -126,18 +129,18 @@ class InputTokens(object):
             result_list.append(result)
 
         print len(result_list), ",", result_list
-        self.redis_conn.zadd(ratio_new_word_with_order, *result_list)
+        self._redis_conn.zadd(ratio_new_word_with_order, *result_list)
 
     def cal_new_word_ratio_with_batch(self):
-        words_with_freq = self.redis_conn.hgetall(new_word)
-        words = self.redis_conn.zrevrangebyscore(new_word_with_order, sys.maxint, new_word_min_freq, 0, -1, False)
-        count_new_word = int(self.redis_conn.hget(summary_meta, summary_meta_word_size))
+        words_with_freq = self._redis_conn.hgetall(new_word)
+        words = self._redis_conn.zrevrangebyscore(new_word_with_order, sys.maxint, new_word_min_freq, 0, -1, False)
+        count_new_word = int(self._redis_conn.hget(summary_meta, summary_meta_word_size))
         window = 1000
         while words is not None and len(words) != 0:
             partial = words[:window]
 
             terms = list(set(nltk.flatten([word.split() for word in partial])))
-            freqs = self.redis_conn.hmget(single_word, terms)
+            freqs = self._redis_conn.hmget(single_word, terms)
             self._cal_ratio(partial, words_with_freq, count_new_word, terms, freqs)
 
             words = words[window:]
