@@ -16,3 +16,6 @@ print_format = "alpha_case: %s : %d -> %s : %d"
 contain_format = "relation_contain: %s : %d -> %s : %d"
 # bulk write db window size
 write_db_winow = 3000
+
+# default channel
+default_channel = '0'
