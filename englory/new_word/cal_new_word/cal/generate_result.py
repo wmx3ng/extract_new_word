@@ -54,13 +54,11 @@ class GenerateNewWords(object):
             prefix = file_name.split('.')[0]
             channel_tag = default_channel
             if self._by_channel:
-                if not self._channel_list:
-                    continue
                 prefix_split = prefix.split('_')
                 if len(prefix_split) > 1:
                     channel_tag = prefix_split[-1]
 
-                if channel_tag not in self._channel_list:
+                if self._channel_list and channel_tag not in self._channel_list:
                     continue
 
             if channel_tag in channel_dict:
