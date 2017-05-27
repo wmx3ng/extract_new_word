@@ -2,7 +2,8 @@
 import datetime
 import os
 import sys
-from resolve_config import ResolveConfig
+
+from test.resolve_config import ResolveConfig
 
 time_format = "%Y%m%d"
 
@@ -31,4 +32,3 @@ if __name__ == '__main__':
     end_date = _get_date('-Dend', arg)
 
     resolve_config = ResolveConfig(config_path)
-
